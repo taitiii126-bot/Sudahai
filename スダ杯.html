@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スダ杯</title>
+<style>
+:root {
+  --bg:#07070f; --bg2:#0c0c1a; --bg3:#10101e;
+  --red:#ff1a3c; --red2:#cc0f2b;
+  --gold:#ffd700; --green:#00ff88; --blue:#00b4ff;
+  --white:#fff; --gray:#6a6a8a; --gray2:#3a3a55;
+  --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.07);
+  --glow-r:0 0 28px rgba(255,26,60,.55); --glow-g:0 0 28px rgba(255,215,0,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Hiragino Kaku Gothic Pro','Meiryo','Yu Gothic',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden;}
+
+/* ── CANVAS BG ── */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,7,15,.93);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;justify-content:center;gap:2px;padding:10px 16px;}
+nav a{color:var(--gray);text-decoration:none;font-size:11px;font-weight:700;padding:6px 16px;border-radius:3px;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;position:relative;}
+nav a::after{content:'';position:absolute;bottom:-1px;left:50%;right:50%;height:2px;background:var(--red);box-shadow:var(--glow-r);transition:all .25s;}
+nav a:hover,nav a.active{color:#fff;}
+nav a:hover::after,nav a.active::after{left:8px;right:8px;}
+nav a.active{color:var(--red);}
+#admin-toggle{position:fixed;top:8px;right:12px;z-index:101;background:transparent;border:1px solid var(--border);color:var(--gray);padding:5px 14px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+#admin-toggle:hover{border-color:var(--gray);color:#fff;}
+#admin-toggle.on{background:var(--gold);color:#000;border-color:var(--gold);}
+
+/* ── LAYOUT ── */
+.wrap{max-width:980px;margin:0 auto;padding:84px 16px 80px;position:relative;z-index:1;}
+section{margin-bottom:80px;}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--red);padding-left:16px;margin-bottom:24px;position:relative;line-height:1.2;}
+.sec-title::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red);box-shadow:var(--glow-r);}
+.sec-title .jp{display:block;font-size:20px;font-weight:700;color:var(--white);letter-spacing:0;text-transform:none;margin-top:3px;}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:24px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,26,60,.4),transparent);}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 20px;border-radius:4px;border:none;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:.5px;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-red:hover:not(:disabled){background:var(--red2);box-shadow:var(--glow-r);}
+.btn-gold{background:var(--gold);color:#000;}
+.btn-gold:hover:not(:disabled){box-shadow:var(--glow-g);}
+.btn-green{background:var(--green);color:#000;}
+.btn-green:hover:not(:disabled){box-shadow:0 0 24px rgba(0,255,136,.5);}
+.btn-blue{background:var(--blue);color:#000;}
+.btn-blue:hover:not(:disabled){box-shadow:0 0 24px rgba(0,180,255,.5);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--gray);}
+.btn-ghost:hover:not(:disabled){border-color:rgba(255,255,255,.4);color:#fff;}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn-full{width:100%;margin-bottom:6px;}
+
+/* ── EVENT INFO ── */
+.event-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px;}
+.ev-item{text-align:center;padding:16px 8px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;}
+.ev-label{font-size:9px;color:var(--gray);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.ev-val{font-size:22px;font-weight:700;}
+.badge{display:inline-block;padding:4px 14px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.badge-plan{background:rgba(255,215,0,.08);color:var(--gold);border:1px solid rgba(255,215,0,.25);}
+.badge-active{background:rgba(255,26,60,.1);color:var(--red);border:1px solid rgba(255,26,60,.35);animation:pulse-b 1.5s infinite;}
+.badge-done{background:rgba(255,255,255,.04);color:var(--gray);border:1px solid var(--border);}
+@keyframes pulse-b{0%,100%{box-shadow:none;}50%{box-shadow:var(--glow-r);}}
+
+/* ── PARTICIPANTS ── */
+.p-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:16px;}
+.p-chip{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:10px 12px;text-align:center;font-size:14px;position:relative;transition:border-color .2s;}
+.p-chip:hover{border-color:rgba(255,255,255,.2);}
+.p-chip .x{position:absolute;top:3px;right:6px;background:none;border:none;color:var(--gray);cursor:pointer;font-size:13px;display:none;transition:color .2s;}
+.p-chip .x:hover{color:var(--red);}
+.admin-on .p-chip .x{display:block;}
+.join-row{display:flex;gap:8px;}
+.join-row input{flex:1;}
+
+/* ── CURRENT MATCH ── */
+.match-grid{display:flex;flex-wrap:wrap;gap:16px;}
+.match-box{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid rgba(255,26,60,.3);border-radius:8px;padding:28px;text-align:center;box-shadow:inset 0 0 80px rgba(255,26,60,.05);position:relative;overflow:hidden;flex:1;min-width:260px;}
+.match-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--red),transparent);}
+.match-vs{display:flex;align-items:center;justify-content:center;gap:20px;margin:28px 0;}
+.match-side{flex:1;background:rgba(255,255,255,.04);border:2px solid transparent;border-radius:8px;padding:28px 16px;transition:all .3s;}
+.match-side.winning{background:rgba(0,255,136,.06);border-color:var(--green);}
+.match-side.champ{background:rgba(255,215,0,.07);border-color:var(--gold);box-shadow:0 0 40px rgba(255,215,0,.2);}
+.ms-name{font-size:18px;font-weight:700;margin-bottom:12px;letter-spacing:.5px;}
+.ms-score{font-size:72px;font-weight:900;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums;}
+.vs-label{font-size:13px;color:var(--gray);white-space:nowrap;font-weight:700;letter-spacing:3px;}
+.score-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+
+/* ── ROUND ROBIN ── */
+.rr-wrap{overflow-x:auto;}
+table.rr{border-collapse:collapse;width:100%;font-size:13px;}
+table.rr th,table.rr td{border:1px solid var(--border);padding:8px 10px;text-align:center;white-space:nowrap;}
+table.rr th{background:rgba(255,255,255,.03);color:var(--gray);font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+table.rr td.W{color:var(--green);font-weight:700;}
+table.rr td.L{color:var(--red);}
+table.rr td.NOW{color:var(--gold);}
+table.rr td.self{background:rgba(255,255,255,.02);}
+
+/* ── TOURNAMENT ── */
+.bracket{display:flex;gap:32px;overflow-x:auto;padding:12px 0;}
+.bk-round{display:flex;flex-direction:column;justify-content:space-around;min-width:155px;}
+.bk-round-title{font-size:9px;color:var(--gray);text-align:center;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+.bk-match{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 12px;margin:8px 0;}
+.bk-match.active-m{border-color:var(--gold);box-shadow:0 0 12px rgba(255,215,0,.2);}
+.bk-player{padding:5px 0;font-size:14px;border-bottom:1px solid var(--border);}
+.bk-player:last-child{border-bottom:none;}
+.bk-player.win{color:var(--gold);font-weight:700;}
+.bk-player.bye{color:var(--gray2);font-style:italic;}
+
+/* ── STANDINGS ── */
+/* ── STANDINGS ── */
+@keyframes stIn{from{opacity:0;transform:translateX(-40px) scale(.96);}to{opacity:1;transform:translateX(0) scale(1);}}
+@keyframes gPulse{0%,100%{box-shadow:0 0 12px rgba(255,215,0,.2);}50%{box-shadow:0 0 40px rgba(255,215,0,.55),inset 0 0 24px rgba(255,215,0,.05);}}
+@keyframes crownFloat{0%,100%{transform:translateY(0) rotate(-6deg);}50%{transform:translateY(-5px) rotate(6deg);}}
+@keyframes crownGlow{0%,100%{text-shadow:0 0 10px rgba(255,215,0,.7);}50%{text-shadow:0 0 28px #ffd700,0 0 50px rgba(255,215,0,.6);}}
+@keyframes numPulse{0%,100%{opacity:1;text-shadow:0 0 16px rgba(255,215,0,.6);}50%{opacity:.75;text-shadow:0 0 32px rgba(255,215,0,1),0 0 60px rgba(255,215,0,.4);}}
+@keyframes goldBar{0%{background-position:200% center;}100%{background-position:-200% center;}}
+@keyframes shimSweep{from{left:-90px;}to{left:calc(100% + 90px);}}
+@keyframes scanRow{from{top:-2px;}to{top:100%;}}
+.st-list{display:flex;flex-direction:column;gap:8px;}
+.st-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:8px;background:var(--card);border:1px solid var(--border);position:relative;overflow:hidden;transition:transform .25s,filter .25s;animation:stIn .5s cubic-bezier(.4,0,.2,1) both;}
+.st-row:hover{transform:translateX(7px);filter:brightness(1.12);}
+.st-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gray2);}
+.st-row:not(.rank-1)::after{content:'';position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);top:-2px;pointer-events:none;}
+.st-row:not(.rank-1):hover::after{animation:scanRow .45s linear;}
+.st-crown{font-size:20px;min-width:26px;text-align:center;line-height:1;}
+.st-rank-num{font-size:28px;font-weight:900;min-width:42px;text-align:center;line-height:1;color:var(--gray2);letter-spacing:-2px;font-variant-numeric:tabular-nums;}
+.st-info{flex:1;min-width:0;}
+.st-player-name{font-size:15px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.st-record{font-size:10px;color:var(--gray);letter-spacing:.5px;}
+.st-bar-wrap{height:3px;background:rgba(255,255,255,.07);border-radius:2px;margin-top:7px;overflow:hidden;}
+.st-bar{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1);width:0%;}
+.st-right{text-align:right;flex-shrink:0;}
+.st-winrate{font-size:22px;font-weight:900;line-height:1;}
+.st-winrate-label{font-size:8px;color:var(--gray);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.st-badge{position:absolute;top:7px;right:10px;font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:2px 7px;border-radius:3px;}
+/* rank 1 */
+.st-row.rank-1{border-color:rgba(255,215,0,.5);background:linear-gradient(105deg,rgba(255,215,0,.11) 0%,rgba(255,200,0,.06) 40%,var(--card) 100%);animation:stIn .5s cubic-bezier(.4,0,.2,1) both,gPulse 2.4s ease-in-out infinite;}
+.st-row.rank-1::before{background:var(--gold);box-shadow:var(--glow-g);}
+.st-row.rank-1::after{content:'';position:absolute;top:0;bottom:0;width:90px;background:linear-gradient(90deg,transparent,rgba(255,215,0,.14),transparent);animation:shimSweep 3.5s linear infinite;pointer-events:none;}
+.st-row.rank-1 .st-crown{animation:crownFloat 2s ease-in-out infinite,crownGlow 2s ease-in-out infinite;}
+.st-row.rank-1 .st-rank-num{color:var(--gold);animation:numPulse 2.4s ease-in-out infinite;}
+.st-row.rank-1 .st-player-name{color:var(--gold);font-size:20px;text-shadow:0 0 20px rgba(255,215,0,.45);}
+.st-row.rank-1 .st-winrate{color:var(--gold);text-shadow:0 0 16px rgba(255,215,0,.5);}
+.st-row.rank-1 .st-bar{background:linear-gradient(90deg,#ffcc00,var(--gold),#ffcc00);background-size:200% 100%;animation:goldBar 2s linear infinite;box-shadow:0 0 14px rgba(255,215,0,.6);}
+.st-row.rank-1 .st-badge{background:rgba(255,215,0,.15);color:var(--gold);border:1px solid rgba(255,215,0,.45);}
+/* rank 2 */
+.st-row.rank-2{border-color:rgba(192,205,240,.25);background:linear-gradient(105deg,rgba(192,205,240,.07) 0%,var(--card) 65%);}
+.st-row.rank-2::before{background:rgba(192,205,240,.85);}
+.st-row.rank-2 .st-rank-num{color:rgba(192,205,240,.85);}
+.st-row.rank-2 .st-player-name{color:rgba(220,228,255,.9);}
+.st-row.rank-2 .st-winrate{color:rgba(192,205,240,.95);}
+.st-row.rank-2 .st-bar{background:rgba(192,205,240,.65);}
+.st-row.rank-2 .st-badge{background:rgba(192,205,240,.1);color:rgba(192,205,240,.9);border:1px solid rgba(192,205,240,.3);}
+/* rank 3 */
+.st-row.rank-3{border-color:rgba(215,135,55,.25);background:linear-gradient(105deg,rgba(215,135,55,.08) 0%,var(--card) 65%);}
+.st-row.rank-3::before{background:rgba(215,135,55,.9);}
+.st-row.rank-3 .st-rank-num{color:rgba(215,135,55,.9);}
+.st-row.rank-3 .st-player-name{color:rgba(235,175,105,.9);}
+.st-row.rank-3 .st-winrate{color:rgba(215,135,55,.95);}
+.st-row.rank-3 .st-bar{background:rgba(215,135,55,.75);}
+.st-row.rank-3 .st-badge{background:rgba(215,135,55,.1);color:rgba(215,135,55,.95);border:1px solid rgba(215,135,55,.3);}
+/* others */
+.st-row:not(.rank-1):not(.rank-2):not(.rank-3) .st-bar{background:var(--gray2);}
+.st-row:not(.rank-1):not(.rank-2):not(.rank-3) .st-winrate{color:var(--white);}
+
+/* ── CHAT ── */
+.chat-box{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:8px;height:300px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px;scroll-behavior:smooth;}
+.chat-box::-webkit-scrollbar{width:4px;}
+.chat-box::-webkit-scrollbar-track{background:transparent;}
+.chat-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.chat-msg{display:flex;flex-direction:column;gap:4px;}
+.chat-msg .meta{font-size:10px;color:var(--gray);letter-spacing:.5px;}
+.chat-msg .meta .author{color:var(--red);font-weight:700;margin-right:8px;}
+.chat-msg .text{font-size:14px;line-height:1.6;word-break:break-word;padding-left:2px;}
+.chat-empty{color:var(--gray);text-align:center;margin:auto;font-size:13px;letter-spacing:.5px;}
+.chat-input-row{display:flex;gap:8px;}
+.chat-name-inp{width:110px;flex-shrink:0;}
+.chat-msg-inp{flex:1;}
+
+/* ── ADMIN PANEL ── */
+#admin-panel{position:fixed;right:0;top:0;bottom:0;width:300px;background:#060612;border-left:1px solid var(--border);padding:56px 18px 20px;overflow-y:auto;transform:translateX(100%);transition:transform .3s;z-index:99;}
+#admin-panel.open{transform:translateX(0);}
+.ap-section{margin-bottom:22px;}
+.ap-label{font-size:9px;color:var(--gray);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+input,select,textarea{width:100%;padding:10px;border-radius:4px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;font-size:13px;margin-bottom:8px;font-family:inherit;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red);}
+input[type=date]{color-scheme:dark;}
+.ap-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:1px solid var(--border);color:#fff;padding:10px 22px;border-radius:4px;font-size:13px;letter-spacing:.5px;z-index:400;transition:transform .3s;pointer-events:none;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── GAME OVERLAY ── */
+#game-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
+#game-overlay.show{display:flex;}
+#game-frame{width:min(96vw,900px);height:min(88vh,600px);border:2px solid var(--red);border-radius:10px;box-shadow:var(--glow-r),0 0 80px rgba(255,26,60,.18);background:#000;}
+#game-close{position:absolute;top:14px;right:18px;background:rgba(255,255,255,.07);border:1px solid var(--border);color:var(--white);font-size:20px;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:501;line-height:1;}
+#game-close:hover{background:var(--red);border-color:var(--red);box-shadow:var(--glow-r);}
+
+/* ── MISC ── */
+.empty{color:var(--gray);text-align:center;padding:40px 20px;font-size:13px;letter-spacing:.5px;}
+.tag{display:inline-block;padding:2px 10px;border-radius:3px;font-size:11px;background:rgba(255,255,255,.07);color:var(--gray);margin-left:6px;}
+.setup-warn{text-align:center;padding:80px 20px;}
+.setup-warn h2{margin-bottom:12px;font-size:22px;}
+.setup-warn p{color:var(--gray);line-height:2;}
+code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:3px;font-size:12px;}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+@media(max-width:620px){
+  #admin-panel{width:100%;}
+  .match-vs{flex-direction:column;}
+  .btn{font-size:13px;padding:9px 16px;}
+  .chat-input-row{flex-wrap:wrap;}
+  .chat-name-inp{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav id="nav-bar">
+  <a href="#home">ホーム</a>
+  <a href="#match-section">試合</a>
+  <a href="#bracket">対戦表</a>
+  <a href="#standings">順位</a>
+  <a href="#chat-section">チャット</a>
+</nav>
+<button id="admin-toggle" onclick="toggleAdminPanel()">管理</button>
+
+<div class="wrap" id="main-wrap">
+
+  <!-- ── ホーム ── -->
+  <section id="home">
+    <div class="sec-title">SCHEDULE<span class="jp">次回 スダ杯</span></div>
+    <div class="card">
+      <div id="ev-status" style="margin-bottom:14px"></div>
+      <div class="event-grid" id="ev-grid">
+        <div class="ev-item"><div class="ev-label">日程</div><div class="ev-val" id="ev-date">—</div></div>
+        <div class="ev-item"><div class="ev-label">場所</div><div class="ev-val" id="ev-host">—</div></div>
+        <div class="ev-item"><div class="ev-label">形式</div><div class="ev-val" id="ev-fmt">—</div></div>
+        <div class="ev-item"><div class="ev-label">参加者</div><div class="ev-val" id="ev-cnt">0人</div></div>
+      </div>
+    </div>
+
+    <!-- Participants -->
+    <div class="sec-title" style="margin-top:44px">PLAYERS<span class="jp">参加者</span></div>
+    <div class="p-grid" id="p-list"></div>
+    <div class="join-row">
+      <input type="text" id="join-inp" placeholder="お名前を入力して参加" maxlength="20"
+             onkeydown="if(event.key==='Enter')join()">
+      <button class="btn btn-red" onclick="join()">参加</button>
+    </div>
+    <div id="form-hint" style="font-size:11px;color:var(--gray);margin-top:8px;letter-spacing:.5px"></div>
+  </section>
+
+  <!-- ── 現在の試合 ── -->
+  <section id="match-section" style="display:none">
+    <div class="sec-title" id="match-title">LIVE MATCH<span class="jp">現在の試合</span></div>
+    <div id="match-box"></div>
+  </section>
+
+  <!-- ── 対戦表 ── -->
+  <section id="bracket">
+    <div class="sec-title" id="bracket-title">BRACKET<span class="jp">対戦表</span></div>
+    <div id="bracket-content"><div class="empty">大会が始まるとここに対戦表が表示されます</div></div>
+  </section>
+
+  <!-- ── 順位 ── -->
+  <section id="standings">
+    <div class="sec-title">RANKINGS<span class="jp">順位表</span></div>
+    <div id="standings-content"><div class="empty">試合が始まると順位が表示されます</div></div>
+  </section>
+
+  <!-- ── チャット ── -->
+  <section id="chat-section">
+    <div class="sec-title">CHAT<span class="jp">チャット</span></div>
+    <div class="card" style="padding:16px">
+      <div class="chat-box" id="chat-box"><div class="chat-empty">まだメッセージはありません</div></div>
+      <div class="chat-input-row">
+        <input type="text" class="chat-name-inp" id="chat-name" placeholder="名前" maxlength="12" style="margin:0">
+        <input type="text" class="chat-msg-inp" id="chat-msg" placeholder="今の試合の感想..." maxlength="100"
+               onkeydown="if(event.key==='Enter')sendChat()" style="margin:0">
+        <button class="btn btn-red" onclick="sendChat()">送信</button>
+      </div>
+      <div style="font-size:10px;color:var(--gray);margin-top:8px;letter-spacing:.5px">メッセージは24時間後に自動削除されます</div>
+    </div>
+  </section>
+
+</div><!-- /wrap -->
+
+<!-- ── 管理パネル ── -->
+<div id="admin-panel">
+  <!-- Login -->
+  <div id="ap-login">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray);margin-bottom:16px">管理者ログイン</div>
+    <input type="password" id="pin-inp" placeholder="PIN" maxlength="6"
+           style="text-align:center;font-size:22px;letter-spacing:6px"
+           onkeydown="if(event.key==='Enter')login()">
+    <button class="btn btn-red btn-full" onclick="login()">ログイン</button>
+    <div style="font-size:11px;color:var(--gray);margin-top:6px;text-align:center">初期PIN: 1234</div>
+  </div>
+
+  <!-- Panel -->
+  <div id="ap-panel" style="display:none">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:18px">管理パネル</div>
+
+    <div class="ap-section">
+      <div class="ap-label">大会情報</div>
+      <input type="date" id="ap-date">
+      <select id="ap-ampm">
+        <option value="">時間未定</option>
+        <option value="午前">午前</option>
+        <option value="午後">午後</option>
+      </select>
+      <select id="ap-hour" style="margin-bottom:8px">
+        <option value="">—時</option>
+        <option value="1">1時</option><option value="2">2時</option><option value="3">3時</option>
+        <option value="4">4時</option><option value="5">5時</option><option value="6">6時</option>
+        <option value="7">7時</option><option value="8">8時</option><option value="9">9時</option>
+        <option value="10">10時</option><option value="11">11時</option><option value="12">12時</option>
+      </select>
+      <input type="text" id="ap-host" placeholder="開催場所（例：スダの家）">
+      <select id="ap-fmt">
+        <option value="roundrobin">総当たり（リーグ戦）</option>
+        <option value="tournament">トーナメント（勝ち抜き）</option>
+      </select>
+      <select id="ap-bestof">
+        <option value="2">2先取（Best of 3）</option>
+        <option value="3">3先取（Best of 5）</option>
+      </select>
+      <select id="ap-tables">
+        <option value="1">1台（同時1試合）</option>
+        <option value="2">2台（同時2試合）</option>
+        <option value="3">3台（同時3試合）</option>
+        <option value="4">4台（同時4試合）</option>
+      </select>
+      <select id="ap-status">
+        <option value="planning">準備中</option>
+        <option value="active">開催中</option>
+        <option value="finished">終了</option>
+      </select>
+      <button class="btn btn-red btn-full" onclick="saveMeta()">保存</button>
+    </div>
+
+    <hr>
+
+    <div class="ap-section">
+      <div class="ap-label">Google フォーム連携</div>
+      <input type="text" id="ap-sheet" placeholder="Google Sheet ID">
+      <div style="font-size:11px;color:var(--gray);margin-bottom:8px">フォーム回答スプレッドシートのID</div>
+      <button class="btn btn-ghost btn-full" onclick="saveSheet()">保存 &amp; 今すぐ同期</button>
+    </div>
+
+    <hr>
+
+    <div class="ap-section">
+      <div class="ap-label">ブラケット</div>
+      <button class="btn btn-gold btn-full" onclick="genBracket()">ブラケット生成 / リセット</button>
+      <button class="btn btn-green btn-full" id="rnd-btn" onclick="randomMatch()" style="margin-top:6px">
+        次の試合をランダムに決定
+      </button>
+    </div>
+
+    <hr>
+
+    <div class="ap-section" id="ap-match" style="display:none">
+      <div class="ap-label">試合操作</div>
+      <div id="ap-match-inner"></div>
+    </div>
+
+    <hr>
+
+    <div class="ap-section">
+      <div class="ap-label">PIN 変更</div>
+      <input type="password" id="new-pin" placeholder="新しいPIN（数字）" maxlength="6">
+      <button class="btn btn-ghost btn-full" onclick="changePin()">変更</button>
+    </div>
+
+    <button class="btn btn-ghost btn-full" style="margin-top:16px" onclick="logout()">ログアウト</button>
+  </div>
+</div><!-- /admin-panel -->
+
+<div id="toast"></div>
+
+<!-- ── GAME OVERLAY ── -->
+<div id="game-overlay">
+  <button id="game-close" onclick="closeGame()">✕</button>
+  <iframe id="game-frame" frameborder="0" allowfullscreen></iframe>
+</div>
+
+<!-- Firebase SDK (v9 compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// ============================================================
+//  FIREBASE CONFIG
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyCp4nGlrWJ0ABIT78hM3p0reH_Eina9L5s",
+  authDomain:        "sudahaisite.firebaseapp.com",
+  databaseURL:       "https://sudahaisite-default-rtdb.firebaseio.com",
+  projectId:         "sudahaisite",
+  storageBucket:     "sudahaisite.firebasestorage.app",
+  messagingSenderId: "817621405269",
+  appId:             "1:817621405269:web:abbc957ce635a154efcedc"
+};
+// ============================================================
+
+const ROOT = 'sudacup';
+let db, dbRef;
+
+// ── State ──
+let S = {
+  meta: { nextDate:'', nextAmpm:'', nextHour:'', host:'', format:'roundrobin', status:'planning', adminPin:'1234', sheetId:'', bestof:2, tables:1 },
+  participants: {},
+  matches: {},
+  currentMatch: null
+};
+let isAdmin = false;
+let pollTimer = null;
+let sheetPolled = '';
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  if (FIREBASE_CONFIG.apiKey === 'PASTE_YOUR_API_KEY') {
+    document.getElementById('main-wrap').innerHTML = `
+      <div class="setup-warn">
+        <h2>Firebase の設定が必要です</h2>
+        <p>
+          このアプリを使うには Firebase の設定が必要です。<br>
+          HTMLファイル冒頭の <code>FIREBASE_CONFIG</code> を書き換えてください。<br><br>
+          1. <a href="https://console.firebase.google.com/" target="_blank" style="color:var(--gold)">Firebase Console</a> でプロジェクト作成<br>
+          2. 「リアルタイム データベース」を有効化<br>
+          3. 「プロジェクトの設定」→「ウェブアプリ」から設定をコピー<br>
+          4. このHTMLの <code>FIREBASE_CONFIG</code> に貼り付けて保存
+        </p>
+      </div>`;
+    return;
+  }
+
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db    = firebase.database();
+  dbRef = db.ref(ROOT);
+
+  dbRef.on('value', snap => {
+    const d = snap.val() || {};
+
+    if (d.meta) S.meta = { ...S.meta, ...d.meta };
+    S.participants  = d.participants  || {};
+    S.matches       = d.matches       || {};
+    S.currentMatch  = d.currentMatch  || null;
+
+    if (S.meta.sheetId && S.meta.sheetId !== sheetPolled) {
+      sheetPolled = S.meta.sheetId;
+      startFormPoll();
+    }
+    renderAll();
+  });
+
+  initChat();
+});
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderAll() {
+  renderMeta();
+  renderParticipants();
+  renderCurrentMatch();
+  renderBracket();
+  renderStandings();
+  if (isAdmin) syncAdminPanel();
+}
+
+function renderMeta() {
+  const m = S.meta;
+  const timeStr = (m.nextAmpm && m.nextHour) ? ` ${m.nextAmpm}${m.nextHour}時` : '';
+  document.getElementById('ev-date').textContent = m.nextDate ? fmtDate(m.nextDate) + timeStr : '未定';
+  document.getElementById('ev-host').textContent = m.host    || '未定';
+  document.getElementById('ev-fmt' ).textContent = m.format === 'tournament' ? 'トーナメント' : '総当たり';
+  document.getElementById('ev-cnt' ).textContent = Object.keys(S.participants).length + '人';
+  const cls  = { planning:'plan', active:'active', finished:'done' };
+  const lbl  = { planning:'準備中', active:'LIVE', finished:'終了' };
+  document.getElementById('ev-status').innerHTML =
+    `<span class="badge badge-${cls[m.status]||'plan'}">${lbl[m.status]||'準備中'}</span>`;
+  document.getElementById('form-hint').textContent =
+    m.sheetId ? 'Google フォームと連携中（30秒ごとに自動更新）' : '';
+}
+
+function renderParticipants() {
+  const el  = document.getElementById('p-list');
+  const ent = Object.entries(S.participants);
+  if (!ent.length) { el.innerHTML = '<div style="color:var(--gray);font-size:14px">まだ参加者がいません</div>'; return; }
+  el.innerHTML = ent.map(([id, p]) =>
+    `<div class="p-chip">${esc(p.name)}
+      <button class="x" onclick="removePart('${id}')">×</button>
+    </div>`
+  ).join('');
+}
+
+function renderCurrentMatch() {
+  const sec = document.getElementById('match-section');
+  const box = document.getElementById('match-box');
+  const ttl = document.getElementById('match-title');
+
+  const activeEntries = Object.entries(S.matches).filter(([,m]) => m.status === 'active');
+  if (!activeEntries.length) { sec.style.display = 'none'; renderAdminMatchPanel(); return; }
+
+  sec.style.display = 'block';
+  const cnt = activeEntries.length;
+  ttl.innerHTML = cnt > 1
+    ? `LIVE MATCHES<span class="jp">現在の試合 (${cnt}台同時進行)</span>`
+    : `LIVE MATCH<span class="jp">現在の試合</span>`;
+
+  const makeCard = (mid, m) => {
+    const bo   = m.bestof || S.meta.bestof || 2;
+    const p1W  = m.score1 >= bo, p2W = m.score2 >= bo, done = p1W || p2W;
+    const winner = p1W ? m.p1 : (p2W ? m.p2 : null);
+    const side = (name, score, won) =>
+      `<div class="match-side ${won ? (done ? 'champ' : 'winning') : ''}">
+        <div class="ms-name">${esc(name)}</div>
+        <div class="ms-score">${score}</div>
+        ${isAdmin && !done ? `<button class="btn btn-green btn-sm" style="margin-top:10px;width:100%" onclick="recGame('${mid}','${name===m.p1?'p1':'p2'}')">✓ 1本取り</button>` : ''}
+        ${won ? `<div style="color:var(--gold);font-size:13px;font-weight:700;letter-spacing:2px;margin-top:10px">WINNER</div>` : ''}
+      </div>`;
+    return `<div class="match-box">
+      <div style="font-size:10px;color:var(--gray);letter-spacing:2px;text-transform:uppercase">試合中 &nbsp;|&nbsp; ${bo}先取 / Best of ${bo*2-1}</div>
+      <div class="match-vs">
+        ${side(m.p1, m.score1, p1W)}
+        <div class="vs-label">VS</div>
+        ${side(m.p2, m.score2, p2W)}
+      </div>
+      ${done ? `<div style="font-size:18px;color:var(--gold);font-weight:700;letter-spacing:2px;margin-top:8px">
+        ${esc(winner)} — 勝利！
+        ${isAdmin ? `<button class="btn btn-ghost btn-sm" style="margin-left:12px" onclick="clearMatch('${mid}')">試合終了</button>` : ''}
+      </div>` : ''}
+    </div>`;
+  };
+
+  if (cnt === 1) {
+    box.innerHTML = makeCard(activeEntries[0][0], activeEntries[0][1]);
+  } else {
+    box.innerHTML = `<div class="match-grid">${activeEntries.map(([id,m]) => makeCard(id,m)).join('')}</div>`;
+  }
+
+  renderAdminMatchPanel();
+}
+
+function renderAdminMatchPanel() {
+  if (!isAdmin) return;
+  const sec = document.getElementById('ap-match');
+  const inn = document.getElementById('ap-match-inner');
+  const activeEntries = Object.entries(S.matches).filter(([,m]) => m.status === 'active');
+  if (!activeEntries.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  inn.innerHTML = activeEntries.map(([mid, m]) => {
+    const bo   = m.bestof || S.meta.bestof || 2;
+    const done = m.score1 >= bo || m.score2 >= bo;
+    return `<div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;">
+      <div style="font-size:12px;color:var(--gray);margin-bottom:6px">${bo}先取</div>
+      <div style="font-size:13px;margin-bottom:8px"><b>${esc(m.p1)}</b> ${m.score1} – ${m.score2} <b>${esc(m.p2)}</b></div>
+      ${!done ? `<button class="btn btn-green btn-full btn-sm" onclick="recGame('${mid}','p1')">✓ ${esc(m.p1)} が1本取り</button>
+      <button class="btn btn-green btn-full btn-sm" onclick="recGame('${mid}','p2')">✓ ${esc(m.p2)} が1本取り</button>` : `<div style="color:var(--gold);font-size:12px;font-weight:700;margin-bottom:6px">${esc(m.winner)} 勝利！</div>`}
+      <button class="btn btn-ghost btn-full btn-sm" style="margin-top:4px" onclick="cancelMatch('${mid}')">${done ? '試合終了' : '試合キャンセル'}</button>
+    </div>`;
+  }).join('');
+}
+
+function renderBracket() {
+  const cnt  = document.getElementById('bracket-content');
+  const ttl  = document.getElementById('bracket-title');
+  const ents = Object.entries(S.matches);
+
+  if (ents.length === 0) {
+    cnt.innerHTML = '<div class="empty">まだ対戦表がありません。管理者がブラケットを生成してください。</div>';
+    return;
+  }
+
+  if (S.meta.format === 'tournament') {
+    ttl.innerHTML = 'BRACKET<span class="jp">トーナメント表</span>';
+    renderTournament(cnt);
+  } else {
+    ttl.innerHTML = 'BRACKET<span class="jp">総当たり表</span>';
+    renderRoundRobin(cnt);
+  }
+}
+
+function renderRoundRobin(cnt) {
+  const names = Object.values(S.participants).map(p => p.name);
+  if (names.length < 2) { cnt.innerHTML = '<div class="empty">参加者が2人以上必要です</div>'; return; }
+
+  // Build result map
+  const res = {}; // res[a][b] = 'W'|'L'|'now'
+  names.forEach(n => { res[n] = {}; });
+  Object.entries(S.matches).forEach(([, m]) => {
+    if (!res[m.p1]) res[m.p1] = {};
+    if (!res[m.p2]) res[m.p2] = {};
+    if (m.status === 'done' && m.winner) {
+      const loser = m.winner === m.p1 ? m.p2 : m.p1;
+      res[m.winner][loser] = 'W';
+      res[loser][m.winner] = 'L';
+    } else if (m.status === 'active') {
+      res[m.p1][m.p2] = 'now';
+      res[m.p2][m.p1] = 'now';
+    }
+  });
+
+  // Stats
+  const stats = {};
+  names.forEach(n => { stats[n] = { w:0, l:0 }; });
+  Object.values(S.matches).forEach(m => {
+    if (m.status === 'done' && m.winner) {
+      const loser = m.winner === m.p1 ? m.p2 : m.p1;
+      if (stats[m.winner]) stats[m.winner].w++;
+      if (stats[loser])    stats[loser].l++;
+    }
+  });
+
+  // Sort by wins
+  const sorted = [...names].sort((a,b) => (stats[b]?.w||0) - (stats[a]?.w||0));
+
+  const hdr = `<th></th>` + sorted.map(n => `<th title="${esc(n)}">${esc(n.length>6?n.slice(0,5)+'…':n)}</th>`).join('') + `<th>勝</th><th>負</th><th>勝率</th>`;
+  const rows = sorted.map(p1 => {
+    const s = stats[p1];
+    const total = s.w + s.l;
+    const rate = total ? Math.round(s.w/total*100)+'%' : '-';
+    const cells = sorted.map(p2 => {
+      if (p1 === p2) return `<td class="self">—</td>`;
+      const r = res[p1]?.[p2];
+      if (r === 'W')   return `<td class="W">○</td>`;
+      if (r === 'L')   return `<td class="L">●</td>`;
+      if (r === 'now') return `<td class="NOW">▶</td>`;
+      return `<td style="color:var(--gray2)">-</td>`;
+    }).join('');
+    return `<tr><th style="text-align:left;white-space:nowrap">${esc(p1)}</th>${cells}<td class="W">${s.w}</td><td class="L">${s.l}</td><td>${rate}</td></tr>`;
+  }).join('');
+
+  cnt.innerHTML = `
+    <div class="rr-wrap">
+      <table class="rr"><thead><tr>${hdr}</tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    <div style="font-size:10px;color:var(--gray);margin-top:10px;letter-spacing:.5px">○=勝 ●=負 ▶=試合中 —=自分</div>`;
+}
+
+function renderTournament(cnt) {
+  const ents    = Object.entries(S.matches).map(([id, m]) => ({ id, ...m }));
+  const maxRnd  = Math.max(...ents.map(m => m.round||1));
+  const roundNames = ['','1回戦','2回戦','準々決勝','準決勝','決勝'];
+
+  const cols = [];
+  for (let r = 1; r <= maxRnd; r++) {
+    const rm = ents.filter(m => (m.round||1) === r);
+    const title = roundNames[r] || `第${r}回戦`;
+    const cards = rm.map(m => {
+      const p1w = m.winner && m.winner === m.p1;
+      const p2w = m.winner && m.winner === m.p2;
+      const isBye2 = m.p2 === 'BYE';
+      const isActive = m.status === 'active';
+      return `<div class="bk-match ${isActive?'active-m':''}">
+        <div class="bk-player ${p1w?'win':''}">${m.p1?esc(m.p1):'?'} <span style="float:right;color:var(--gold)">${m.score1||0}</span></div>
+        <div class="bk-player ${isBye2?'bye':(p2w?'win':'')}">${isBye2?'BYE':(m.p2?esc(m.p2):'?')} <span style="float:right;color:var(--gold)">${isBye2?'':m.score2||0}</span></div>
+        ${isActive?'<div style="font-size:10px;color:var(--green);margin-top:4px;letter-spacing:1px">▶ 試合中</div>':''}
+      </div>`;
+    }).join('');
+    cols.push(`<div class="bk-round"><div class="bk-round-title">${title}</div>${cards}</div>`);
+  }
+  cnt.innerHTML = `<div class="bracket">${cols.join('')}</div>`;
+}
+
+function renderStandings() {
+  const cnt   = document.getElementById('standings-content');
+  const names = Object.values(S.participants).map(p => p.name);
+  if (!names.length || !Object.keys(S.matches).length) {
+    cnt.innerHTML = '<div class="empty">試合が始まると順位が表示されます</div>'; return;
+  }
+
+  const stats = {};
+  names.forEach(n => { stats[n] = { w:0, l:0, gw:0, gl:0 }; });
+  Object.values(S.matches).forEach(m => {
+    if (m.status !== 'done' || !m.winner) return;
+    const loser = m.winner === m.p1 ? m.p2 : m.p1;
+    if (stats[m.winner]) stats[m.winner].w++;
+    if (stats[loser])    stats[loser].l++;
+  });
+
+  const sorted = [...names].sort((a, b) => {
+    const sa = stats[a], sb = stats[b];
+    if (sb.w !== sa.w) return sb.w - sa.w;
+    const ra = sa.w / (sa.w + sa.l || 1);
+    const rb = sb.w / (sb.w + sb.l || 1);
+    return rb - ra;
+  });
+
+  const rankNums   = ['01','02','03'];
+  const rankBadges = ['CHAMPION','2ND PLACE','3RD PLACE'];
+  const rows = sorted.map((n, i) => {
+    const s    = stats[n];
+    const t    = s.w + s.l;
+    const pct  = t ? Math.round(s.w / t * 100) : 0;
+    const rate = t ? pct + '%' : '—';
+    const rc   = i < 3 ? `rank-${i+1}` : '';
+    const num  = i < 3 ? rankNums[i] : String(i + 1).padStart(2, '0');
+    const crown = i === 0 ? `<div class="st-crown">♛</div>` : `<div style="min-width:34px"></div>`;
+    const badge = i < 3 ? `<span class="st-badge">${rankBadges[i]}</span>` : '';
+    return `<div class="st-row ${rc}" style="animation-delay:${i * 80}ms">
+      ${badge}
+      ${crown}
+      <div class="st-rank-num">${num}</div>
+      <div class="st-info">
+        <div class="st-player-name">${esc(n)}</div>
+        <div class="st-record">${s.w}勝 &nbsp;${s.l}敗 &nbsp;|&nbsp; ${t}試合</div>
+        <div class="st-bar-wrap"><div class="st-bar" data-pct="${pct}"></div></div>
+      </div>
+      <div class="st-right">
+        <div class="st-winrate">${rate}</div>
+        <div class="st-winrate-label">WIN RATE</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  cnt.innerHTML = `<div class="st-list">${rows}</div>`;
+  // バーを0→実際の幅へアニメーション
+  setTimeout(() => {
+    cnt.querySelectorAll('.st-bar[data-pct]').forEach(b => {
+      b.style.width = b.dataset.pct + '%';
+    });
+  }, 60);
+}
+
+// ============================================================
+//  ADMIN PANEL
+// ============================================================
+function toggleAdminPanel() {
+  const p = document.getElementById('admin-panel');
+  if (isAdmin) { p.classList.toggle('open'); }
+  else { p.classList.add('open'); document.getElementById('pin-inp').focus(); }
+}
+
+function login() {
+  const v = document.getElementById('pin-inp').value;
+  if (v === (S.meta.adminPin || '1234')) {
+    isAdmin = true;
+    document.getElementById('ap-login').style.display = 'none';
+    document.getElementById('ap-panel').style.display = 'block';
+    document.getElementById('admin-toggle').classList.add('on');
+    document.getElementById('main-wrap').classList.add('admin-on');
+    toast('管理者モードに入りました');
+    syncAdminPanel();
+    renderAll();
+  } else {
+    toast('PINが違います'); document.getElementById('pin-inp').value = '';
+  }
+}
+
+function logout() {
+  isAdmin = false;
+  document.getElementById('admin-panel').classList.remove('open');
+  document.getElementById('admin-toggle').classList.remove('on');
+  document.getElementById('main-wrap').classList.remove('admin-on');
+  document.getElementById('ap-login').style.display = 'block';
+  document.getElementById('ap-panel').style.display = 'none';
+  document.getElementById('pin-inp').value = '';
+  renderAll();
+}
+
+function syncAdminPanel() {
+  if (!isAdmin) return;
+  const m = S.meta;
+  const ap = (id, val) => { const el=document.getElementById(id); if(el) el.value = val||''; };
+  ap('ap-date',   m.nextDate);
+  ap('ap-ampm',   m.nextAmpm||'');
+  ap('ap-hour',   m.nextHour||'');
+  ap('ap-host',   m.host);
+  ap('ap-fmt',    m.format||'roundrobin');
+  ap('ap-bestof', m.bestof||2);
+  ap('ap-tables', m.tables||1);
+  ap('ap-status', m.status||'planning');
+  ap('ap-sheet',  m.sheetId);
+}
+
+function saveMeta() {
+  const u = {};
+  u[`${ROOT}/meta/nextDate`]  = document.getElementById('ap-date').value;
+  u[`${ROOT}/meta/nextAmpm`]  = document.getElementById('ap-ampm').value;
+  u[`${ROOT}/meta/nextHour`]  = document.getElementById('ap-hour').value;
+  u[`${ROOT}/meta/host`]      = document.getElementById('ap-host').value;
+  u[`${ROOT}/meta/format`]    = document.getElementById('ap-fmt').value;
+  u[`${ROOT}/meta/bestof`]    = parseInt(document.getElementById('ap-bestof').value);
+  u[`${ROOT}/meta/tables`]    = parseInt(document.getElementById('ap-tables').value);
+  u[`${ROOT}/meta/status`]    = document.getElementById('ap-status').value;
+  db.ref().update(u).then(() => toast('保存しました'));
+}
+
+function saveSheet() {
+  const id = document.getElementById('ap-sheet').value.trim();
+  db.ref(`${ROOT}/meta/sheetId`).set(id).then(() => {
+    toast('保存しました。同期します...');
+    sheetPolled = id;
+    startFormPoll(true);
+  });
+}
+
+function changePin() {
+  const v = document.getElementById('new-pin').value.trim();
+  if (!v) { toast('PINを入力してください'); return; }
+  db.ref(`${ROOT}/meta/adminPin`).set(v).then(() => {
+    toast('PIN を変更しました');
+    document.getElementById('new-pin').value = '';
+  });
+}
+
+// ============================================================
+//  PARTICIPANTS
+// ============================================================
+function join() {
+  if (!db) { toast('Firebase に接続していません'); return; }
+  const inp  = document.getElementById('join-inp');
+  const name = inp.value.trim();
+  if (!name) { toast('名前を入力してください'); return; }
+  if (name.length > 20) { toast('20文字以内にしてください'); return; }
+  if (Object.values(S.participants).find(p => p.name === name)) {
+    toast('同じ名前がすでに登録されています'); return;
+  }
+  const id = db.ref(`${ROOT}/participants`).push().key;
+  db.ref(`${ROOT}/participants/${id}`).set({ name, joinedAt: new Date().toISOString() })
+    .then(() => { inp.value = ''; toast(`${name} さんが参加登録しました！`); });
+}
+
+function removePart(id) {
+  if (!isAdmin) return;
+  db.ref(`${ROOT}/participants/${id}`).remove().then(() => toast('削除しました'));
+}
+
+// ============================================================
+//  BRACKET GENERATION
+// ============================================================
+function genBracket() {
+  if (!isAdmin) return;
+  const parts = Object.values(S.participants).map(p => p.name);
+  if (parts.length < 2) { toast('参加者が2人以上必要です'); return; }
+  if (!confirm(`${parts.length}人で${S.meta.format==='tournament'?'トーナメント':'総当たり'}ブラケットを生成します。\n現在のデータはリセットされます。\nよろしいですか？`)) return;
+
+  db.ref(`${ROOT}/matches`).remove();
+  db.ref(`${ROOT}/currentMatch`).set(null);
+
+  const bo  = S.meta.bestof || 2;
+  const upd = {};
+  if (S.meta.format === 'tournament') {
+    const sh = shuffle([...parts]);
+    const sz = Math.pow(2, Math.ceil(Math.log2(sh.length)));
+    while (sh.length < sz) sh.push('BYE');
+    for (let i = 0; i < sz; i += 2) {
+      const id  = db.ref(`${ROOT}/matches`).push().key;
+      const bye = sh[i+1] === 'BYE';
+      upd[`${ROOT}/matches/${id}`] = {
+        p1: sh[i], p2: sh[i+1], score1: 0, score2: 0, round: 1, bestof: bo,
+        winner: bye ? sh[i] : null, status: bye ? 'done' : 'pending'
+      };
+    }
+  } else {
+    for (let i = 0; i < parts.length; i++)
+      for (let j = i+1; j < parts.length; j++) {
+        const id = db.ref(`${ROOT}/matches`).push().key;
+        upd[`${ROOT}/matches/${id}`] = {
+          p1: parts[i], p2: parts[j], score1: 0, score2: 0, round: 1, bestof: bo,
+          winner: null, status: 'pending'
+        };
+      }
+  }
+  db.ref().update(upd).then(() => toast(`ブラケットを生成しました（${bo}先取）`));
+}
+
+// ============================================================
+//  MATCH MANAGEMENT
+// ============================================================
+function randomMatch() {
+  if (!isAdmin) return;
+  const tables  = S.meta.tables || 1;
+  const active  = Object.entries(S.matches).filter(([,m]) => m.status === 'active');
+  const need    = tables - active.length;
+  if (need <= 0) { toast(`すでに${tables}台分の試合が進行中です`); return; }
+  const pending = Object.entries(S.matches).filter(([,m]) => m.status === 'pending');
+  if (!pending.length) { toast('残りの試合がありません'); return; }
+
+  // crypto.getRandomValues() で完全シャッフル（Fisher-Yates）
+  const arr = [...pending];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const rnd = new Uint32Array(1);
+    crypto.getRandomValues(rnd);
+    const j = rnd[0] % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  const toStart = arr.slice(0, need);
+
+  const upd = {};
+  toStart.forEach(([id]) => {
+    upd[`${ROOT}/matches/${id}/status`] = 'active';
+  });
+  db.ref().update(upd).then(() => {
+    const names = toStart.map(([id]) => { const m = S.matches[id]; return `${m.p1} vs ${m.p2}`; });
+    toast(`試合開始：${names.join(' ／ ')}`);
+  });
+}
+
+function cancelMatch(mid) {
+  if (!isAdmin) return;
+  const m = S.matches[mid];
+  if (!m) return;
+  const upd = {};
+  upd[`${ROOT}/matches/${mid}/status`]  = 'pending';
+  upd[`${ROOT}/matches/${mid}/score1`]  = 0;
+  upd[`${ROOT}/matches/${mid}/score2`]  = 0;
+  upd[`${ROOT}/matches/${mid}/winner`]  = null;
+  db.ref().update(upd).then(() => toast(`試合をリセットしました：${m.p1} vs ${m.p2}`));
+}
+
+function recGame(mid, side) {
+  if (!isAdmin) return;
+  const m  = S.matches[mid];
+  if (!m || m.winner) return;
+  const bo = m.bestof || S.meta.bestof || 2;
+  const s1 = m.score1 + (side === 'p1' ? 1 : 0);
+  const s2 = m.score2 + (side === 'p2' ? 1 : 0);
+  const upd = {};
+  upd[`${ROOT}/matches/${mid}/score1`] = s1;
+  upd[`${ROOT}/matches/${mid}/score2`] = s2;
+  if (s1 >= bo || s2 >= bo) {
+    const winner = s1 >= bo ? m.p1 : m.p2;
+    upd[`${ROOT}/matches/${mid}/winner`] = winner;
+    upd[`${ROOT}/matches/${mid}/status`] = 'done';
+    // Tournament: advance winner
+    if (S.meta.format === 'tournament') {
+      setTimeout(() => tryAdvanceTournament(mid, winner), 600);
+    }
+  }
+  db.ref().update(upd);
+}
+
+function clearMatch(mid) {
+  // mid が指定された場合はその試合を done にする（スコアは保持）
+  // 指定なしの場合は後方互換で全アクティブをリセット
+  if (mid) {
+    db.ref(`${ROOT}/matches/${mid}/status`).set('done');
+  } else {
+    const upd = {};
+    Object.entries(S.matches).forEach(([id, m]) => {
+      if (m.status === 'active') upd[`${ROOT}/matches/${id}/status`] = 'done';
+    });
+    db.ref().update(upd);
+  }
+}
+
+function tryAdvanceTournament(finishedId, winner) {
+  const fin   = S.matches[finishedId];
+  const round = fin.round || 1;
+  const rdMs  = Object.entries(S.matches).filter(([,m]) => (m.round||1) === round);
+
+  // Merge local update
+  const tmp = { ...S.matches };
+  tmp[finishedId] = { ...fin, winner, status:'done' };
+
+  const allDone = rdMs.every(([id]) => tmp[id].status === 'done');
+  if (!allDone) return;
+
+  const winners = rdMs.map(([id]) => tmp[id].winner).filter(w => w && w !== 'BYE');
+  if (winners.length === 1) {
+    toast(`優勝: ${winners[0]}`);
+    db.ref(`${ROOT}/meta/status`).set('finished'); return;
+  }
+
+  const nextRound = round + 1;
+  const upd = {};
+  for (let i = 0; i < winners.length; i += 2) {
+    if (i+1 < winners.length) {
+      const id = db.ref(`${ROOT}/matches`).push().key;
+      upd[`${ROOT}/matches/${id}`] = {
+        p1: winners[i], p2: winners[i+1],
+        score1: 0, score2: 0, round: nextRound,
+        winner: null, status: 'pending'
+      };
+    }
+  }
+  db.ref().update(upd).then(() => toast(`${nextRound}回戦の対戦が決定しました`));
+}
+
+// ============================================================
+//  GOOGLE FORM POLLING
+// ============================================================
+function startFormPoll(immediate = false) {
+  if (pollTimer) clearInterval(pollTimer);
+  const go = () => fetchFormParticipants(S.meta.sheetId);
+  if (immediate) go();
+  pollTimer = setInterval(go, 30000);
+}
+
+async function fetchFormParticipants(sheetId) {
+  if (!sheetId) return;
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&t=${Date.now()}`;
+    const res  = await fetch(url);
+    const csv  = await res.text();
+    const rows = parseCSV(csv).slice(1); // skip header
+    const existing = new Set(Object.values(S.participants).map(p => p.name));
+    let added = 0;
+    for (const row of rows) {
+      const name = (row[1] || row[0] || '').trim();
+      if (!name || existing.has(name)) continue;
+      const id = db.ref(`${ROOT}/participants`).push().key;
+      await db.ref(`${ROOT}/participants/${id}`).set({ name, joinedAt: new Date().toISOString(), fromForm: true });
+      added++;
+    }
+    if (added > 0) toast(`フォームから ${added} 人追加しました`);
+  } catch(_) {}
+}
+
+// ============================================================
+//  UTILS
+// ============================================================
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.replace(/\r\n|\r/g, '\n').trim().split('\n');
+  for (const line of lines) {
+    const cells = []; let cell = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (inQ && line[i+1] === '"') { cell += '"'; i++; } else inQ = !inQ; }
+      else if (c === ',' && !inQ) { cells.push(cell); cell = ''; }
+      else cell += c;
+    }
+    cells.push(cell); rows.push(cells);
+  }
+  return rows;
+}
+
+function fmtDate(s) {
+  if (!s) return '未定';
+  const d = new Date(s);
+  const w = ['日','月','火','水','木','金','土'];
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}（${w[d.getDay()]}）`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Nav highlight on scroll ──
+window.addEventListener('scroll', () => {
+  const ids = ['home','match-section','bracket','standings','chat-section'];
+  let cur = 'home';
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top < 200) cur = id;
+  });
+  document.querySelectorAll('nav a').forEach(a =>
+    a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+});
+
+// ============================================================
+//  CHAT (Firebase – 24h TTL)
+// ============================================================
+const CHAT_PATH = `${ROOT}/chat`;
+const CHAT_TTL  = 24 * 60 * 60 * 1000;
+
+// ── ゲームトリガー二重実行防止
+// child_added のローカル楽観更新で同一キーが2回発火することがある。
+// snap.key（Firebase Push ID）を Set で管理し、同一キーは1回のみ処理する。
+let chatReady = false;
+const _chatHandledKeys = new Set();
+
+function initChat() {
+  if (!db) return;
+  const saved = localStorage.getItem('sudacup_chat_name');
+  if (saved) { const el = document.getElementById('chat-name'); if (el) el.value = saved; }
+
+  // ── 表示用：on('value') でチャット欄を常に最新状態に保つ ──
+  db.ref(CHAT_PATH).on('value', snap => {
+    const data = snap.val() || {};
+    const now  = Date.now();
+    const msgs = Object.entries(data)
+      .map(([k, v]) => ({ k, ...v }))
+      .filter(m => (now - m.ts) < CHAT_TTL)
+      .sort((a, b) => a.ts - b.ts);
+    renderChat(msgs);
+    // 期限切れメッセージ削除
+    Object.entries(data).forEach(([k, v]) => {
+      if ((now - v.ts) >= CHAT_TTL) db.ref(`${CHAT_PATH}/${k}`).remove();
+    });
+  });
+
+  // ── TTS & ゲームトリガー専用 ──
+  // child_added を使い、さらに snap.key で重複チェックして確実に1回だけ処理する
+  db.ref(CHAT_PATH).on('child_added', snap => {
+    if (!chatReady) return; // 起動時の既存メッセージはスキップ
+    const key = snap.key;
+    if (_chatHandledKeys.has(key)) return; // 同一キーの二重発火をブロック
+    _chatHandledKeys.add(key);
+    const msg = snap.val();
+    if (!msg || !msg.text) return;
+    const t = msg.text.trim();
+    if (t === 'スマブラしたい') openGame('smash');
+    if (t === 'ひまです')      openGame('flappy');
+  });
+
+  // once('value') は child_added の初期配信がすべて終わった後に呼ばれることが保証されている
+  db.ref(CHAT_PATH).once('value', () => { chatReady = true; });
+}
+
+function renderChat(msgs) {
+  const box = document.getElementById('chat-box');
+  if (!box) return;
+  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  if (!msgs.length) {
+    box.innerHTML = '<div class="chat-empty">まだメッセージはありません</div>';
+    return;
+  }
+  box.innerHTML = msgs.map(m => {
+    const t   = new Date(m.ts);
+    const hh  = t.getHours().toString().padStart(2,'0');
+    const mm  = t.getMinutes().toString().padStart(2,'0');
+    return `<div class="chat-msg">
+      <div class="meta"><span class="author">${esc(m.name)}</span>${hh}:${mm}</div>
+      <div class="text">${esc(m.text)}</div>
+    </div>`;
+  }).join('');
+  if (atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function sendChat() {
+  const nameEl = document.getElementById('chat-name');
+  const msgEl  = document.getElementById('chat-msg');
+  const name   = nameEl.value.trim();
+  const text   = msgEl.value.trim();
+  if (!name) { toast('名前を入力してください'); nameEl.focus(); return; }
+  if (!text) { toast('メッセージを入力してください'); return; }
+  if (!db)   { toast('Firebase に接続していません'); return; }
+  localStorage.setItem('sudacup_chat_name', name);
+  db.ref(CHAT_PATH).push({ name, text, ts: Date.now() })
+    .then(() => { msgEl.value = ''; });
+}
+
+
+// ============================================================
+//  GAME OVERLAY
+// ============================================================
+let flappyBlobUrl = null;
+
+function openGame(type) {
+  const overlay = document.getElementById('game-overlay');
+  const frame   = document.getElementById('game-frame');
+  if (type === 'smash') {
+    frame.src = 'smash-arena.html';
+  } else if (type === 'flappy') {
+    if (!flappyBlobUrl) flappyBlobUrl = getFlappyBirdURL();
+    frame.src = flappyBlobUrl;
+  }
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGame() {
+  const overlay = document.getElementById('game-overlay');
+  const frame   = document.getElementById('game-frame');
+  overlay.classList.remove('show');
+  frame.src = 'about:blank';
+  document.body.style.overflow = '';
+}
+
+function getFlappyBirdURL() {
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Flappy Bird</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#07070f;}
+body{display:flex;align-items:center;justify-content:center;}
+canvas{display:block;}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>
+var c=document.getElementById('c'),ctx=c.getContext('2d');
+var BW=360,BH=580,sc=1;
+function resize(){
+  var vw=window.innerWidth,vh=window.innerHeight;
+  if(vw/vh<BW/BH){sc=vw/BW;}else{sc=vh/BH;}
+  c.width=Math.floor(BW*sc);c.height=Math.floor(BH*sc);
+}
+resize();
+window.addEventListener('resize',resize);
+function s(v){return v*sc;}
+
+// ── Web Audio ──
+var AC;
+try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}
+function beep(freq,dur,type,vol){
+  if(!AC)return;
+  try{
+    var o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);
+    o.type=type||'sine';o.frequency.value=freq;
+    g.gain.setValueAtTime(vol||0.12,AC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+dur);
+    o.start();o.stop(AC.currentTime+dur);
+  }catch(e){}
+}
+
+// ── State ──
+var bird,pipes,score,frame,state,hi=0,shakeT=0,shakeA=0,particles=[],stars=[],groundX=0;
+
+function initStars(){
+  stars=[];
+  for(var i=0;i<90;i++)stars.push({x:Math.random()*BW,y:Math.random()*BH*0.85,r:Math.random()*1.4+0.3,a:Math.random()*0.5+0.3,ph:Math.random()*6.28});
+}
+
+function reset(){
+  bird={x:85,y:BH/2-30,vy:0,r:14,trail:[]};
+  pipes=[];score=0;frame=0;state='wait';particles=[];shakeT=0;groundX=0;
+}
+
+function jump(){
+  if(AC&&AC.state==='suspended')AC.resume();
+  if(state==='dead'){reset();return;}
+  if(state==='wait')state='playing';
+  bird.vy=-6.5;
+  beep(500,0.07,'sine',0.1);
+  for(var i=0;i<6;i++){
+    particles.push({x:s(bird.x),y:s(bird.y+bird.r),vx:(Math.random()-.5)*s(2),vy:s(Math.random()*2+1),life:1,r:s(Math.random()*2+1),col:'rgba(255,220,50,'});
+  }
+}
+document.addEventListener('keydown',function(e){if(e.code==='Space'||e.key===' '){e.preventDefault();jump();}});
+document.addEventListener('click',jump);
+document.addEventListener('touchstart',function(e){e.preventDefault();jump();},{passive:false});
+
+function spawnPipe(){
+  var gap=s(145),top=s(75)+Math.random()*(c.height-gap-s(165));
+  pipes.push({x:c.width+s(20),top:top,bot:top+gap,scored:false,glow:0});
+}
+
+function burst(bx,by,n,col1,col2){
+  for(var i=0;i<n;i++){
+    var a=Math.PI*2/n*i+(Math.random()-.5)*0.5,sp=s(Math.random()*7+3);
+    particles.push({x:bx,y:by,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-s(2),life:1,r:s(Math.random()*5+2),col:i%2===0?col1:col2});
+  }
+}
+
+function loop(){
+  requestAnimationFrame(loop);
+  var W=c.width,H=c.height,GH=s(42),GY=H-GH;
+  var sx=0,sy=0;
+  if(shakeT>0){shakeT--;var sa=shakeA*(shakeT/12);sx=(Math.random()-.5)*sa;sy=(Math.random()-.5)*sa;}
+  ctx.save();ctx.translate(sx,sy);
+
+  // ── BG ──
+  var bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#060610');bg.addColorStop(0.6,'#090914');bg.addColorStop(1,'#0c0818');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Grid
+  var gOff=(frame*s(1.8))%(s(44));
+  ctx.lineWidth=1;ctx.strokeStyle='rgba(255,26,60,0.055)';
+  for(var x=0;x<W;x+=s(44)){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(var y=-gOff;y<H;y+=s(44)){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Stars
+  stars.forEach(function(st){
+    var blink=0.55+Math.sin(st.ph+frame*0.035)*0.45;
+    ctx.beginPath();ctx.arc(s(st.x),s(st.y),s(st.r),0,6.28);
+    ctx.fillStyle='rgba(255,255,255,'+(st.a*blink)+')';ctx.fill();
+  });
+
+  // ── UPDATE ──
+  if(state==='playing'){
+    frame++;
+    bird.vy+=0.36;bird.y+=bird.vy;
+    if(bird.trail.length>14)bird.trail.shift();
+    bird.trail.push({x:bird.x,y:bird.y});
+    groundX-=3.2;if(groundX<-44)groundX+=44;
+    if(frame%90===0)spawnPipe();
+
+    for(var i=pipes.length-1;i>=0;i--){
+      pipes[i].x-=s(3.2);
+      pipes[i].glow=Math.max(0,pipes[i].glow-0.04);
+      if(pipes[i].x<-s(70)){pipes.splice(i,1);continue;}
+      var bx2=s(bird.x),by2=s(bird.y),br2=s(bird.r-3),px=pipes[i].x,pw=s(52);
+      if(bx2+br2>px&&bx2-br2<px+pw){
+        if(by2-br2<pipes[i].top||by2+br2>pipes[i].bot){
+          state='dead';if(score>hi)hi=score;shakeT=18;shakeA=s(9);
+          burst(bx2,by2,32,'rgba(255,80,60,','rgba(255,210,0,');
+          beep(180,0.35,'sawtooth',0.2);
+        }
+      }
+      if(!pipes[i].scored&&s(bird.x)>pipes[i].x+pw){
+        pipes[i].scored=true;score++;pipes[i].glow=1.2;
+        burst(pipes[i].x+pw/2,(pipes[i].top+pipes[i].bot)/2,14,'rgba(255,215,0,','rgba(0,255,136,');
+        beep(880,0.05,'sine',0.1);setTimeout(function(){beep(1100,0.05,'sine',0.08);},55);
+      }
+    }
+    if(s(bird.y)+s(bird.r)>GY||s(bird.y)-s(bird.r)<0){
+      state='dead';if(score>hi)hi=score;shakeT=18;shakeA=s(9);
+      burst(s(bird.x),s(bird.y),32,'rgba(255,80,60,','rgba(255,210,0,');
+      beep(180,0.35,'sawtooth',0.2);
+    }
+  }
+
+  // ── PIPES ──
+  pipes.forEach(function(p){
+    var pw=s(52),gl=p.glow;
+    if(gl>0.05){ctx.shadowColor='#00ff88';ctx.shadowBlur=s(gl*18);}
+    var pg=ctx.createLinearGradient(p.x,0,p.x+pw,0);
+    pg.addColorStop(0,'#0a3a0a');pg.addColorStop(0.3,'#188018');pg.addColorStop(0.65,'#20a020');pg.addColorStop(1,'#0a3a0a');
+    ctx.fillStyle=pg;
+    ctx.fillRect(p.x,0,pw,p.top);ctx.fillRect(p.x,p.bot,pw,H-p.bot);
+    var cw=pw+s(12),ch=s(22);
+    var cpg=ctx.createLinearGradient(p.x-s(6),0,p.x+cw,0);
+    cpg.addColorStop(0,'#0d470d');cpg.addColorStop(0.35,'#20cc20');cpg.addColorStop(0.65,'#2ee02e');cpg.addColorStop(1,'#0d470d');
+    ctx.fillStyle=cpg;
+    ctx.fillRect(p.x-s(6),p.top-ch,cw,ch);ctx.fillRect(p.x-s(6),p.bot,cw,ch);
+    // Highlight
+    ctx.fillStyle='rgba(255,255,255,0.14)';
+    ctx.fillRect(p.x+s(7),0,s(7),p.top);ctx.fillRect(p.x+s(7),p.bot,s(7),H-p.bot);
+    // Neon edge
+    ctx.strokeStyle='rgba(0,255,100,'+(0.25+gl*0.55)+')';ctx.lineWidth=s(1.5);
+    ctx.strokeRect(p.x,0,pw,p.top);ctx.strokeRect(p.x,p.bot,pw,H-p.bot);
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+  });
+
+  // ── PARTICLES ──
+  for(var i=particles.length-1;i>=0;i--){
+    var p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=s(0.2);p.life-=0.038;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,6.28);
+    ctx.fillStyle=p.col+p.life+')';ctx.fill();
+  }
+
+  // ── GROUND ──
+  var gg=ctx.createLinearGradient(0,GY,0,H);
+  gg.addColorStop(0,'#1c1a08');gg.addColorStop(1,'#0e0d04');
+  ctx.fillStyle=gg;ctx.fillRect(0,GY,W,GH);
+  ctx.strokeStyle='rgba(255,210,0,0.55)';ctx.lineWidth=s(2.5);
+  ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();
+  ctx.strokeStyle='rgba(255,210,0,0.1)';ctx.lineWidth=s(1);
+  for(var gx=s(groundX%44);gx<W+s(44);gx+=s(44)){
+    ctx.beginPath();ctx.moveTo(gx,GY);ctx.lineTo(gx,H);ctx.stroke();
+  }
+
+  // ── BIRD ──
+  if(state!=='dead'||shakeT>0){
+    // Trail
+    for(var i=0;i<bird.trail.length;i++){
+      var t=bird.trail[i],ta=i/bird.trail.length;
+      ctx.beginPath();ctx.arc(s(t.x),s(t.y),s(bird.r)*ta*0.55,0,6.28);
+      ctx.fillStyle='rgba(255,215,0,'+(ta*0.3)+')';ctx.fill();
+    }
+    var bx=s(bird.x),by=s(bird.y),br=s(bird.r);
+    var tilt=Math.min(Math.max(bird.vy*3,-30),80)*Math.PI/180;
+    ctx.save();ctx.translate(bx,by);ctx.rotate(tilt);
+    // Outer glow
+    ctx.shadowColor='rgba(255,220,50,0.75)';ctx.shadowBlur=s(16);
+    // Body
+    var bodyG=ctx.createRadialGradient(-s(4),-s(4),s(1),0,0,br);
+    bodyG.addColorStop(0,'#fffacc');bodyG.addColorStop(0.35,'#ffe84a');bodyG.addColorStop(1,'#e09600');
+    ctx.beginPath();ctx.arc(0,0,br,0,6.28);ctx.fillStyle=bodyG;ctx.fill();
+    ctx.strokeStyle='rgba(180,100,0,0.5)';ctx.lineWidth=s(1.5);ctx.stroke();
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+    // Wing
+    var wf=Math.sin(Date.now()/85)*s(5)-s(1);
+    ctx.beginPath();ctx.ellipse(-s(4),s(3)+wf,s(9),s(5.5),-0.35,0,6.28);
+    ctx.fillStyle='#ffc400';ctx.fill();
+    ctx.strokeStyle='rgba(180,100,0,0.3)';ctx.lineWidth=s(1);ctx.stroke();
+    // Belly
+    var bellyG=ctx.createRadialGradient(s(2),s(4),0,s(2),s(4),s(8));
+    bellyG.addColorStop(0,'rgba(255,255,220,0.5)');bellyG.addColorStop(1,'rgba(255,255,220,0)');
+    ctx.beginPath();ctx.arc(s(2),s(4),s(8),0,6.28);ctx.fillStyle=bellyG;ctx.fill();
+    // Eye
+    ctx.beginPath();ctx.arc(s(6.5),-s(4),s(5.5),0,6.28);ctx.fillStyle='#fff';ctx.fill();
+    ctx.beginPath();ctx.arc(s(7.5),-s(3.5),s(3),0,6.28);ctx.fillStyle='#111';ctx.fill();
+    ctx.beginPath();ctx.arc(s(8.5),-s(4.5),s(1.2),0,6.28);ctx.fillStyle='#fff';ctx.fill();
+    // Beak
+    ctx.fillStyle='#ff8c00';ctx.beginPath();
+    ctx.moveTo(br,s(-1));ctx.lineTo(br+s(12),s(3));ctx.lineTo(br,s(7));ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(200,70,0,0.4)';ctx.lineWidth=s(0.8);ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── SCORE ──
+  if(state!=='wait'){
+    ctx.textAlign='center';
+    ctx.shadowColor='rgba(255,215,0,0.85)';ctx.shadowBlur=s(22);
+    ctx.fillStyle='rgba(0,0,0,0.4)';ctx.font='bold '+s(36)+'px monospace';ctx.fillText(score,W/2+s(1.5),s(56));
+    ctx.fillStyle='#fff';ctx.fillText(score,W/2,s(54));
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+  }
+
+  // ── WAIT SCREEN ──
+  if(state==='wait'){
+    ctx.textAlign='center';
+    ctx.shadowColor='#00ff88';ctx.shadowBlur=s(28);
+    ctx.fillStyle='#00ff88';ctx.font='bold '+s(32)+'px monospace';ctx.fillText('FLAPPY BIRD',W/2,H/2-s(80));
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(0,255,136,0.5)';ctx.font=s(11)+'px monospace';
+    ctx.fillText('by SUDA CUP',W/2,H/2-s(52));
+    ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font=s(12.5)+'px monospace';
+    ctx.fillText('クリック / スペース でスタート',W/2,H/2+s(5));
+    var pulse=0.55+Math.sin(frame*0.1)*0.45;
+    ctx.fillStyle='rgba(255,215,0,'+pulse+')';ctx.font='bold '+s(20)+'px monospace';
+    ctx.fillText('▼  TAP  ▼',W/2,H/2+s(45));
+    if(hi>0){
+      ctx.fillStyle='rgba(255,215,0,0.8)';ctx.font=s(12)+'px monospace';
+      ctx.fillText('BEST: '+hi,W/2,H/2+s(85));
+    }
+    // Idle bird float
+    var iy=H/2-s(130)+Math.sin(frame*0.055)*s(10);
+    var bx=W/2,by=iy,br=s(bird.r);
+    ctx.save();ctx.translate(bx,by);
+    ctx.shadowColor='rgba(255,220,50,0.6)';ctx.shadowBlur=s(14);
+    var bodyG2=ctx.createRadialGradient(-s(4),-s(4),s(1),0,0,br);
+    bodyG2.addColorStop(0,'#fffacc');bodyG2.addColorStop(0.35,'#ffe84a');bodyG2.addColorStop(1,'#e09600');
+    ctx.beginPath();ctx.arc(0,0,br,0,6.28);ctx.fillStyle=bodyG2;ctx.fill();
+    ctx.strokeStyle='rgba(180,100,0,0.5)';ctx.lineWidth=s(1.5);ctx.stroke();
+    ctx.shadowBlur=0;
+    var wf2=Math.sin(Date.now()/85)*s(5)-s(1);
+    ctx.beginPath();ctx.ellipse(-s(4),s(3)+wf2,s(9),s(5.5),-0.35,0,6.28);ctx.fillStyle='#ffc400';ctx.fill();
+    ctx.beginPath();ctx.arc(s(6.5),-s(4),s(5.5),0,6.28);ctx.fillStyle='#fff';ctx.fill();
+    ctx.beginPath();ctx.arc(s(7.5),-s(3.5),s(3),0,6.28);ctx.fillStyle='#111';ctx.fill();
+    ctx.fillStyle='#ff8c00';ctx.beginPath();
+    ctx.moveTo(br,s(-1));ctx.lineTo(br+s(12),s(3));ctx.lineTo(br,s(7));ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+
+  // ── GAME OVER ──
+  if(state==='dead'&&shakeT<=0){
+    ctx.fillStyle='rgba(0,0,0,0.72)';ctx.fillRect(0,0,W,H);
+    var pw2=W*0.82,ph2=s(230),px2=(W-pw2)/2,py2=(H-ph2)/2-s(10);
+    // Panel
+    var panG=ctx.createLinearGradient(px2,py2,px2,py2+ph2);
+    panG.addColorStop(0,'rgba(35,5,10,0.97)');panG.addColorStop(1,'rgba(10,2,6,0.97)');
+    ctx.fillStyle=panG;
+    ctx.beginPath();
+    var r2=s(14);
+    ctx.moveTo(px2+r2,py2);ctx.lineTo(px2+pw2-r2,py2);ctx.quadraticCurveTo(px2+pw2,py2,px2+pw2,py2+r2);
+    ctx.lineTo(px2+pw2,py2+ph2-r2);ctx.quadraticCurveTo(px2+pw2,py2+ph2,px2+pw2-r2,py2+ph2);
+    ctx.lineTo(px2+r2,py2+ph2);ctx.quadraticCurveTo(px2,py2+ph2,px2,py2+ph2-r2);
+    ctx.lineTo(px2,py2+r2);ctx.quadraticCurveTo(px2,py2,px2+r2,py2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,26,60,0.55)';ctx.lineWidth=s(2);ctx.stroke();
+    // Top accent line
+    ctx.strokeStyle='rgba(255,26,60,0.9)';ctx.lineWidth=s(2);
+    ctx.beginPath();ctx.moveTo(px2+s(20),py2);ctx.lineTo(px2+pw2-s(20),py2);ctx.stroke();
+
+    ctx.textAlign='center';
+    ctx.shadowColor='#ff1a3c';ctx.shadowBlur=s(22);
+    ctx.fillStyle='#ff1a3c';ctx.font='bold '+s(28)+'px monospace';
+    ctx.fillText('GAME OVER',W/2,py2+s(55));
+    ctx.shadowBlur=0;ctx.shadowColor='transparent';
+
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(px2+s(18),py2+s(68),pw2-s(36),s(1));
+
+    ctx.fillStyle='#fff';ctx.font='bold '+s(22)+'px monospace';
+    ctx.fillText('スコア  '+score,W/2,py2+s(105));
+
+    if(score>0&&score>=hi){
+      ctx.shadowColor='#ffd700';ctx.shadowBlur=s(16);
+      ctx.fillStyle='#ffd700';ctx.font='bold '+s(14)+'px monospace';
+      ctx.fillText('★ NEW BEST! ★',W/2,py2+s(138));
+      ctx.shadowBlur=0;ctx.shadowColor='transparent';
+    } else if(hi>0){
+      ctx.fillStyle='rgba(255,215,0,0.65)';ctx.font=s(12)+'px monospace';
+      ctx.fillText('BEST: '+hi,W/2,py2+s(138));
+    }
+
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(px2+s(18),py2+s(156),pw2-s(36),s(1));
+
+    var p3=0.45+Math.sin(frame*0.12)*0.45;
+    ctx.fillStyle='rgba(255,255,255,'+p3+')';ctx.font=s(12.5)+'px monospace';
+    ctx.fillText('クリックで再スタート',W/2,py2+s(195));
+  }
+
+  ctx.restore();
+}
+initStars();reset();loop();
+<\/script></body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  return URL.createObjectURL(blob);
+}
+
+// ============================================================
+//  CANVAS PARTICLE BACKGROUND
+// ============================================================
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H;
+  const N   = 70;
+  const MAX = 130;
+  const particles = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function Particle() {
+    this.reset();
+  }
+  Particle.prototype.reset = function() {
+    this.x  = Math.random() * W;
+    this.y  = Math.random() * H;
+    this.vx = (Math.random() - .5) * .35;
+    this.vy = (Math.random() - .5) * .35;
+    this.r  = Math.random() * 1.2 + .4;
+    this.a  = Math.random() * .4 + .15;
+  };
+  Particle.prototype.update = function() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < 0) this.x = W;
+    if (this.x > W) this.x = 0;
+    if (this.y < 0) this.y = H;
+    if (this.y > H) this.y = 0;
+  };
+
+  function init() {
+    resize();
+    for (let i = 0; i < N; i++) particles.push(new Particle());
+    window.addEventListener('resize', resize);
+    loop();
+  }
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Lines
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const dx   = particles[i].x - particles[j].x;
+        const dy   = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MAX) {
+          const alpha = (1 - dist / MAX) * 0.12;
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255,26,60,${alpha})`;
+          ctx.lineWidth   = .6;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Dots
+    particles.forEach(p => {
+      p.update();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,26,60,${p.a})`;
+      ctx.fill();
+    });
+
+    requestAnimationFrame(loop);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
